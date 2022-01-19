@@ -349,7 +349,7 @@ function mcmcsample(
 
                         # Sample a chain and save it to the vector.
                         chains[i] = StatsBase.sample(subrng, models[id], samplers[id], N;
-                                                     progress = false, kwargs...)
+                                                     progress = false, _chain_index=i, kwargs...)
 
                         # Update the progress bar.
                         progress && put!(channel, true)
@@ -422,13 +422,13 @@ function mcmcsample(
 
             Distributed.@async begin
                 try
-                    chains = Distributed.pmap(pool, seeds) do seed
+                    chains = Distributed.pmap(pool, enumerate(seeds)) do (i, seed)
                         # Seed a new random number generator with the pre-made seed.
                         Random.seed!(rng, seed)
 
                         # Sample a chain.
                         chain = StatsBase.sample(rng, model, sampler, N;
-                                                 progress = false, kwargs...)
+                                                _chain_index=i, progress = false, kwargs...)
 
                         # Update the progress bar.
                         progress && put!(channel, true)
@@ -465,7 +465,7 @@ function mcmcsample(
 
     # Sample the chains.
     chains = map(
-        i -> StatsBase.sample(rng, model, sampler, N; progressname = string(progressname, " (Chain ", i, " of ", nchains, ")"),
+        i -> StatsBase.sample(rng, model, sampler, N; progressname = string(progressname, " (Chain ", i, " of ", nchains, ")"), _chain_index=i,
         kwargs...),
         1:nchains
     )
