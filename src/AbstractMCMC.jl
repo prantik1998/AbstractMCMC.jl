@@ -7,6 +7,7 @@ import ProgressLogging
 import StatsBase
 import TerminalLoggers
 import Transducers
+using Setfield
 
 import Distributed
 import Logging
