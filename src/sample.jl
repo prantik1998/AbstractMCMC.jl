@@ -224,7 +224,7 @@ function mcmcsample(
                 println("type of the fieldname $name is $typ")
             end
             println(states[sampler_id].z.ℓπ.value)
-            logα = (samplers[sampler_id].alg.β - samplers[sampler_id + 1].alg.β) * (states[sampler_id].z.ℓπ.value - states[sampler_id+1].z.ℓπ.value)
+            logα = - (samplers[sampler_id].alg.β - samplers[sampler_id + 1].alg.β) * (states[sampler_id].z.ℓπ.value - states[sampler_id+1].z.ℓπ.value)
             if log(1-Random.rand(rng)) ≤ logα
                 println("Successful swap b/w $sampler_id, $(sampler_id+1)")
                 @set samplers[sampler_id].alg.β, samplers[sampler_id + 1].alg.β = samplers[sampler_id + 1].alg.β, samplers[sampler_id].alg.β
@@ -241,6 +241,7 @@ function mcmcsample(
     start = time()
     local states, state, itotal
     states, samples_per_replica = [], []
+    βs = [sampler.alg.β for sampler in samplers]
     @ifwithprogresslogger progress name=progressname begin
         # Determine threshold values for progress logging
         # (one update per 0.5% of progress)
@@ -334,23 +335,27 @@ function mcmcsample(
     duration = stop - start
     stats = SamplingStats(start, stop, duration)
 
-    for (sampler_id, sampler) in enumerate(samplers)
-        if sampler.alg.β == 1
-            state = states[sampler_id]
-            samples = samples_per_replica[sampler_id]
-            return bundle_samples(
-                samples, 
-                model, 
-                sampler,
-                state,
-                chain_type;
-                stats=stats,
-                discard_initial=discard_initial,
-                thinning=thinning,
-                kwargs...
-            )
+    bundled_samples = Dict()
+    for β in βs
+        for (sampler_id, sampler) in enumerate(samplers)
+            if sampler.alg.β == β
+                state = states[sampler_id]
+                samples = samples_per_replica[sampler_id]
+                bundled_samples[β] =  bundle_samples(
+                    samples, 
+                    model, 
+                    sampler,
+                    state,
+                    chain_type;
+                    stats=stats,
+                    discard_initial=discard_initial,
+                    thinning=thinning,
+                    kwargs...
+                )
+            end
         end
     end
+    return bundled_samples
 end
 
 function mcmcsample(
