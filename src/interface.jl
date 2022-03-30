@@ -33,6 +33,8 @@ function bundle_samples(
     samples,
     ::AbstractModel,
     ::AbstractSampler,
+    accepted_swap_moves,
+    total_swap_moves,
     ::Any,
     ::Type;
     kwargs...
