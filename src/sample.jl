@@ -242,7 +242,7 @@ function mcmcsample(
     start = time()
     local states, state, itotal
     states, samples_per_replica = [], []
-    L = length(samples)
+    L = length(samplers)
     total_swap_moves = zeros(L-1)
     accepted_swap_moves = zeros(L-1)
     βs = [sampler.alg.β for sampler in samplers]
