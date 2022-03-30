@@ -215,7 +215,7 @@ function mcmcsample(
     Replica exchange
     """
     println("Replica Exchange AbstractMCMC.mcmcsample")
-    function swap_β(samplers::Vector{<:AbstractSampler}, states, start::Integer)
+    function swap_β(samplers::Vector{<:AbstractSampler}, states, start::Integer,total_swap_moves,accepted_swap_moves)
         L = length(samplers) - 1
         for sampler_id in start:2:L
             println("Attempting swap b/w $sampler_id, $(sampler_id+1)")
@@ -227,9 +227,11 @@ function mcmcsample(
             logα = - (samplers[sampler_id].alg.β - samplers[sampler_id + 1].alg.β) * (states[sampler_id].z.ℓπ.value - states[sampler_id+1].z.ℓπ.value)
             if log(1-Random.rand(rng)) ≤ logα
                 @set samplers[sampler_id].alg.β, samplers[sampler_id + 1].alg.β = samplers[sampler_id + 1].alg.β, samplers[sampler_id].alg.β
+                accepted_swap_moves[sampler_id] += 1
             else
                 println("Failed swap b/w $sampler_id, $(sampler_id+1)")
             end
+            total_swap_moves[sampler_id] += 1
         end
     end
     # Check the number of requested samples.
@@ -240,6 +242,8 @@ function mcmcsample(
     start = time()
     local states, state, itotal
     states, samples_per_replica = [], []
+    total_swap_moves = zeros(L-1)
+    accepted_swap_moves = zeros(L-1)
     βs = [sampler.alg.β for sampler in samplers]
     @ifwithprogresslogger progress name=progressname begin
         # Determine threshold values for progress logging
@@ -299,9 +303,9 @@ function mcmcsample(
 
             if i % swap_every == 0
                 if i % (2*swap_every) == 0
-                    swap_β(samplers, states, 2) # swap even indices
+                    swap_β(samplers, states, 2,total_swap_moves,accepted_swap_moves) # swap even indices
                 else
-                    swap_β(samplers, states, 1) # swap odd indices
+                    swap_β(samplers, states, 1,total_swap_moves,accepted_swap_moves) # swap odd indices
                 end
             end
             for (sampler_id, sampler) in enumerate(samplers)
@@ -344,6 +348,8 @@ function mcmcsample(
                     samples, 
                     model, 
                     sampler,
+                    accepted_swap_moves,
+                    total_swap_moves,
                     state,
                     chain_type;
                     stats=stats,
