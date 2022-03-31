@@ -340,6 +340,7 @@ function mcmcsample(
     stats = SamplingStats(start, stop, duration)
 
     bundled_samples = Dict()
+    println(accepted_swap_moves./total_swap_moves)
     for β in βs
         for (sampler_id, sampler) in enumerate(samplers)
             if sampler.alg.β == β
@@ -349,8 +350,6 @@ function mcmcsample(
                     samples, 
                     model, 
                     sampler,
-                    accepted_swap_moves,
-                    total_swap_moves,
                     state,
                     chain_type;
                     stats=stats,
