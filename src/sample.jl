@@ -304,9 +304,9 @@ function mcmcsample(
 
             if i % swap_every == 0
                 if i % (2*swap_every) == 0
-                    swap_β(samplers, states, 2,total_swap_moves,accepted_swap_moves) # swap even indices
+                    swap_β(samplers, states, 2,total_swap_moves,accepted_swap_moves,samples_per_replica) # swap even indices
                 else
-                    swap_β(samplers, states, 1,total_swap_moves,accepted_swap_moves) # swap odd indices
+                    swap_β(samplers, states, 1,total_swap_moves,accepted_swap_moves,samples_per_replica) # swap odd indices
                 end
             end
             for (sampler_id, sampler) in enumerate(samplers)
