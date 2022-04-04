@@ -215,7 +215,7 @@ function mcmcsample(
     Replica exchange
     """
     println("Replica Exchange AbstractMCMC.mcmcsample")
-    function swap_β(samplers::Vector{<:AbstractSampler}, states, start::Integer,total_swap_moves,accepted_swap_moves,samples_per_replica)
+    function swap_β(samplers::Vector{<:AbstractSampler}, states,i,start::Integer,total_swap_moves,accepted_swap_moves,samples_per_replica)
         L = length(samplers) - 1
         for sampler_id in start:2:L
             println("Attempting swap b/w $sampler_id, $(sampler_id+1)")
@@ -226,10 +226,32 @@ function mcmcsample(
             println(states[sampler_id].z.ℓπ.value)
             logα = - (samplers[sampler_id].alg.β - samplers[sampler_id + 1].alg.β) * (states[sampler_id].z.ℓπ.value - states[sampler_id+1].z.ℓπ.value)
             if log(1-Random.rand(rng)) ≤ logα
-                @set samples_per_replica[sampler_id][length(samples_per_replica[sampler_id])-1],samples_per_replica[sampler_id+1][length(samples_per_replica[sampler_id+1])-1] = samples_per_replica[sampler_id+1][length(samples_per_replica[sampler_id+1])-1],samples_per_replica[sampler_id][length(samples_per_replica[sampler_id])-1]
-                @set states[sampler_id].z.ℓπ.value,states[sampler_id+1].z.ℓπ.value = states[sampler_id+1].z.ℓπ.value,states[sampler_id].z.ℓπ.value
+                state = states[sampler_id]
+                sampler = samplers[sampler_id]
+                sample, state = step(rng, model, sampler, state; kwargs...)
+                callback === nothing || callback(rng, model, sampler, sample, state, i; kwargs...)
+                states[sampler_id+1] = state
+                samples_per_replica[sampler_id+1] = save!!(samples_per_replica[sampler_id+1], sample, i, model, sampler, N; kwargs...)
+                state = states[sampler_id+1]
+                sampler = samplers[sampler_id+1]
+                sample, state = step(rng, model, sampler, state; kwargs...)
+                callback === nothing || callback(rng, model, sampler, sample, state, i; kwargs...)
+                states[sampler_id] = state
+                samples_per_replica[sampler_id] = save!!(samples_per_replica[sampler_id], sample, i, model, sampler, N; kwargs...)
                 accepted_swap_moves[sampler_id] += 1
             else
+                state = states[sampler_id]
+                sampler = samplers[sampler_id]
+                sample, state = step(rng, model, sampler, state; kwargs...)
+                callback === nothing || callback(rng, model, sampler, sample, state, i; kwargs...)
+                states[sampler_id] = state
+                samples_per_replica[sampler_id] = save!!(samples_per_replica[sampler_id], sample, i, model, sampler, N; kwargs...)
+                state = states[sampler_id+1]
+                sampler = samplers[sampler_id+1]
+                sample, state = step(rng, model, sampler, state; kwargs...)
+                callback === nothing || callback(rng, model, sampler, sample, state, i; kwargs...)
+                states[sampler_id+1] = state
+                samples_per_replica[sampler_id+1] = save!!(samples_per_replica[sampler_id+1], sample, i, model, sampler, N; kwargs...)
                 println("Failed swap b/w $sampler_id, $(sampler_id+1)")
             end
             total_swap_moves[sampler_id] += 1
@@ -305,9 +327,9 @@ function mcmcsample(
 
             if i % swap_every == 0
                 if i % (2*swap_every) == 0
-                    swap_β(samplers, states, 2,total_swap_moves,accepted_swap_moves,samples_per_replica) # swap even indices
+                    swap_β(samplers, states,i, 2,total_swap_moves,accepted_swap_moves,samples_per_replica) # swap even indices
                 else
-                    swap_β(samplers, states, 1,total_swap_moves,accepted_swap_moves,samples_per_replica) # swap odd indices
+                    swap_β(samplers, states,i,1,total_swap_moves,accepted_swap_moves,samples_per_replica) # swap odd indices
                 end
             end
             for (sampler_id, sampler) in enumerate(samplers)
