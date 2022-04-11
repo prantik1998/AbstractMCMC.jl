@@ -228,7 +228,8 @@ function mcmcsample(
             if log(1-Random.rand(rng)) ≤ logα
                 @set samples_per_replica[sampler_id][length(samples_per_replica[sampler_id])],samples_per_replica[sampler_id+1][[length(samples_per_replica[sampler_id+1])]] = samples_per_replica[sampler_id+1][[length(samples_per_replica[sampler_id+1])]],samples_per_replica[sampler_id][[length(samples_per_replica[sampler_id])]]
                 @set states[sampler_id],states[sampler_id+1] = states[sampler_id+1],states[sampler_id]
-                println("Successful swap b/w $sampler_id, $(sampler_id+1)")                
+                println("Successful swap b/w $sampler_id, $(sampler_id+1)")  
+                accepted_swap_moves[sampler_id] += 1              
             else
                 println("Failed swap b/w $sampler_id, $(sampler_id+1)")
             end
